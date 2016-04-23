@@ -3,7 +3,7 @@ require 'spec_helper'
 describe VendingMachine do
   describe 'initialize' do
     it 'with products' do
-      product = Product.new('coke', 1)
+      product = Product.new('coke', 1, 10)
       vm = VendingMachine.new(products: [product])
       expect(vm.products).to eq([[product]])
     end
@@ -39,8 +39,8 @@ describe VendingMachine do
   describe 'reload and record it' do
     context 'products' do
       it '- update all products' do
-        product = Product.new('coke', 1)
-        new_product = Product.new('tea', 1)
+        product = Product.new('coke', 1, 10)
+        new_product = Product.new('tea', 1, 8)
         vm = VendingMachine.new(products: [product])
         vm.reload_products([new_product])
         expect(vm.products).to eq([[product], [new_product]])
@@ -95,13 +95,14 @@ describe VendingMachine do
 
   describe 'buy product' do
     before do
-      @product   = Product.new('coke', 1)
-      @product_2 = Product.new('tea', 0.8)
+      @product   = Product.new('coke', 1, 10)
+      @product_2 = Product.new('tea', 0.8, 8)
+      @product_3 = Product.new('milk', 0.8, 1)
     end
 
     context 'error case' do
       before do
-        @vm = VendingMachine.new(products: [@product, @product_2])
+        @vm = VendingMachine.new(products: [@product, @product_2, @product_3])
       end
 
       it 'no product found' do
@@ -110,6 +111,11 @@ describe VendingMachine do
 
       it 'coin not accept' do
         expect(@vm.sell('aloha', '3p': 1)).to eq(['Coin not acceptable', {'3p': 1}])
+      end
+
+      it 'buy stock is 0' do
+        expect(@vm.sell('milk', '50p': 1, '20p': 1, '10p': 1)).to eq(['milk'])
+        expect(@vm.sell('milk', '50p': 1, '20p': 1, '10p': 1)).to eq('Cannot find milk in vending machine')
       end
     end
 
@@ -162,8 +168,8 @@ describe VendingMachine do
 
   describe 'history' do
     before do
-      @product   = Product.new('coke', 1)
-      @product_2 = Product.new('tea', 0.8)
+      @product   = Product.new('coke', 1, 10)
+      @product_2 = Product.new('tea', 0.8, 8)
       @change = Change.new(
         '1p': 1,
         '2p': 2,
@@ -182,6 +188,9 @@ describe VendingMachine do
         expect(@vm.get_changes_history).to eq(
           { "changes: 0"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>7, :L2=>8},
             "changes: 1"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>5, :"20p"=>6, :"50p"=>7, :L1=>7, :L2=>8}})
+        expect(@vm.get_product_history).to eq(
+          { "changes: 0"=>{"coke"=>{"price"=>1.0, "stock"=>10}, "tea"=>{"price"=>0.8, "stock"=>8}},
+            "changes: 1"=>{"coke"=>{"price"=>1.0, "stock"=>10}, "tea"=>{"price"=>0.8, "stock"=>7}}})
       end
 
       it 'more than price' do
@@ -190,6 +199,9 @@ describe VendingMachine do
           { "changes: 0"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>7, :L2=>8},
             "changes: 1"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>8, :L2=>8},
             "changes: 2"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>4, :"50p"=>6, :L1=>8, :L2=>8}})
+        expect(@vm.get_product_history).to eq(
+          { "changes: 0"=>{"coke"=>{"price"=>1.0, "stock"=>10}, "tea"=>{"price"=>0.8, "stock"=>8}},
+            "changes: 1"=>{"coke"=>{"price"=>1.0, "stock"=>10}, "tea"=>{"price"=>0.8, "stock"=>7}}})
       end
 
       it 'less than price' do
@@ -197,6 +209,8 @@ describe VendingMachine do
         expect(@vm.get_changes_history).to eq(
           { "changes: 0"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>7, :L2=>8},
             "changes: 1"=>{:"1p"=>2, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>7, :L2=>8}})
+        expect(@vm.get_product_history).to eq(
+          { "changes: 0"=>{"coke"=>{"price"=>1.0, "stock"=>10}, "tea"=>{"price"=>0.8, "stock"=>8}}})
       end
     end
 
@@ -222,13 +236,13 @@ describe VendingMachine do
     end
 
     it 'products' do
-      @product   = Product.new('coke', 1)
-      @product_2 = Product.new('tea', 0.8)
+      @product   = Product.new('coke', 1, 10)
+      @product_2 = Product.new('tea', 0.8, 8)
       @vm = VendingMachine.new(products: [@product])
       @vm.reload_products([@product_2])
       expect(@vm.get_product_history).to eq(
-        {"changes: 0"=>{"coke"=>1.0},
-         "changes: 1"=>{"tea"=>0.8}})
+        { "changes: 0"=>{"coke"=>{"price"=>1.0, "stock"=>10}},
+          "changes: 1"=>{"tea"=>{"price"=>0.8, "stock"=>8}}})
     end
 
   end

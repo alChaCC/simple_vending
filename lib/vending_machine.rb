@@ -32,8 +32,14 @@ class VendingMachine
     if result > 0
       changes = current_changes.return_charges(result, paid)
       give_money(changes)
-      changes != paid ? [product_name, changes] : ['No enough changes to you, return your money', changes]
+      if changes != paid
+        give_stock(product_name)
+        [product_name, changes]
+      else
+        ['No enough changes to you, return your money', changes]
+      end
     elsif result == 0
+      give_stock(product_name)
       [product_name]
     elsif result < 0
       ["you need to give more money: #{result * -1}"]
@@ -44,7 +50,11 @@ class VendingMachine
     history_h = {}
     @products.each_with_index do |p_a, i|
       history_h["changes: #{i}"] = {}
-      p_a.map { |p|  history_h["changes: #{i}"][p.name] = p.price }
+      p_a.map do |p|
+        history_h["changes: #{i}"][p.name] = {}
+        history_h["changes: #{i}"][p.name]['price'] = p.price
+        history_h["changes: #{i}"][p.name]['stock'] = p.stock
+      end
     end
     history_h
   end
@@ -60,7 +70,7 @@ class VendingMachine
   private
 
   def current_products
-    @products.last
+    @products.last.select { |p| p.stock > 0 }
   end
 
   def current_changes
@@ -73,8 +83,16 @@ class VendingMachine
     @changes << Change.get_money(current_changes, paid)
   end
 
+  # Record Money that machine give user
+  # @param paid [Hash] money we give
   def give_money(paid)
     @changes << Change.give_money(current_changes, paid)
+  end
+
+  # Record stock update for product
+  # @param product_name [String] product user buy
+  def give_stock(product_name)
+    @products << Product.give_stock(current_products, product_name)
   end
 
   def fetch_product(product_name)
