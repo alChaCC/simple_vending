@@ -21,4 +21,23 @@ class VendingMachine
       send("#{attr}=", instance_variable_get("@#{attr}") << options )
     end
   end
+
+  def sell(product_name, paid)
+    return "Cannot find #{product_name} in vending machine" unless current_products.map(&:name).include?(product_name)
+    result = fetch_product(product_name).checking_price(paid)
+  end
+
+  private
+
+  def current_products
+    @products.last
+  end
+
+  def current_changes
+    @changes.last
+  end
+
+  def fetch_product(product_name)
+    current_products.find { |p| p.name == product_name }
+  end
 end
