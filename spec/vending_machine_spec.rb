@@ -1,4 +1,4 @@
-require "spec_helper"
+require 'spec_helper'
 
 describe VendingMachine do
   describe 'initialize' do
@@ -97,16 +97,66 @@ describe VendingMachine do
     before do
       @product   = Product.new('coke', 1)
       @product_2 = Product.new('tea', 0.8)
-      @vm = VendingMachine.new(products: [@product, @product_2])
     end
 
-    it 'no product found' do
-      expect(@vm.sell('aloha', 100)).to eq('Cannot find aloha in vending machine')
+    context 'error case' do
+      before do
+        @vm = VendingMachine.new(products: [@product, @product_2])
+      end
+
+      it 'no product found' do
+        expect(@vm.sell('aloha', '1p': 1)).to eq('Cannot find aloha in vending machine')
+      end
+
+      it 'coin not accept' do
+        expect(@vm.sell('aloha', '3p': 1)).to eq(['Coin not acceptable', {'3p': 1}])
+      end
     end
 
-    it 'correctly' do
-      expect(@vm.sell('coke', 1)).to eq(0.0)
-      expect(@vm.sell('tea', 1)).to eq(0.2)
+
+    context 'normal case' do
+      before do
+        @change = Change.new(
+          '1p': 1,
+          '2p': 2,
+          '5p': 3,
+          '10p': 4,
+          '20p': 5,
+          '50p': 6,
+          'L1': 7,
+          'L2': 8)
+        @vm = VendingMachine.new(products: [@product, @product_2], changes: @change)
+      end
+
+      context 'user paid correctly' do
+        it 'equal to price' do
+          expect(@vm.sell('tea', '50p': 1, '20p': 1, '10p': 1)).to eq(['tea'])
+        end
+
+        it 'more than price' do
+          expect(@vm.sell('tea', 'L1': 1)).to eq(['tea', {'20p': 1}])
+        end
+
+        it 'less than price' do
+           expect(@vm.sell('tea', '1p': 1)).to eq(['you need to give more money: 0.79'])
+        end
+      end
+
+      context 'user paid correctly, but run of off coin' do
+        it 'more than price' do
+          @change = Change.new(
+          '1p': 0,
+          '2p': 0,
+          '5p': 0,
+          '10p': 0,
+          '20p': 0,
+          '50p': 0,
+          'L1': 1,
+          'L2': 1)
+          @vm.reload_changes(@change)
+          expect(@vm.sell('tea', 'L1': 1)).to eq(['No enough changes to you, return your money', {'L1': 1}])
+        end
+      end
     end
   end
 end
