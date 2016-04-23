@@ -40,6 +40,23 @@ class VendingMachine
     end
   end
 
+  def get_product_history
+    history_h = {}
+    @products.each_with_index do |p_a, i|
+      history_h["changes: #{i}"] = {}
+      p_a.map { |p|  history_h["changes: #{i}"][p.name] = p.price }
+    end
+    history_h
+  end
+
+  def get_changes_history
+    history_h = {}
+    @changes.each_with_index do |change, i|
+      history_h["changes: #{i}"] = change.changes
+    end
+    history_h
+  end
+
   private
 
   def current_products

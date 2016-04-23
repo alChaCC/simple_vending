@@ -159,4 +159,77 @@ describe VendingMachine do
       end
     end
   end
+
+  describe 'history' do
+    before do
+      @product   = Product.new('coke', 1)
+      @product_2 = Product.new('tea', 0.8)
+      @change = Change.new(
+        '1p': 1,
+        '2p': 2,
+        '5p': 3,
+        '10p': 4,
+        '20p': 5,
+        '50p': 6,
+        'L1': 7,
+        'L2': 8)
+      @vm = VendingMachine.new(products: [@product, @product_2], changes: @change)
+    end
+
+    context 'changes - user paid correctly' do
+      it 'equal to price' do
+        @vm.sell('tea', '50p': 1, '20p': 1, '10p': 1)
+        expect(@vm.get_changes_history).to eq(
+          { "changes: 0"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>7, :L2=>8},
+            "changes: 1"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>5, :"20p"=>6, :"50p"=>7, :L1=>7, :L2=>8}})
+      end
+
+      it 'more than price' do
+        @vm.sell('tea', 'L1': 1)
+        expect(@vm.get_changes_history).to eq(
+          { "changes: 0"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>7, :L2=>8},
+            "changes: 1"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>8, :L2=>8},
+            "changes: 2"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>4, :"50p"=>6, :L1=>8, :L2=>8}})
+      end
+
+      it 'less than price' do
+        @vm.sell('tea', '1p': 1)
+        expect(@vm.get_changes_history).to eq(
+          { "changes: 0"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>7, :L2=>8},
+            "changes: 1"=>{:"1p"=>2, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>7, :L2=>8}})
+      end
+    end
+
+    context 'changes - user paid correctly, but run of off coin' do
+      it 'more than price' do
+        @change = Change.new(
+        '1p': 0,
+        '2p': 0,
+        '5p': 0,
+        '10p': 0,
+        '20p': 0,
+        '50p': 0,
+        'L1': 1,
+        'L2': 1)
+        @vm.reload_changes(@change)
+        @vm.sell('tea', 'L1': 1)
+        expect(@vm.get_changes_history).to eq(
+          { "changes: 0"=>{:"1p"=>1, :"2p"=>2, :"5p"=>3, :"10p"=>4, :"20p"=>5, :"50p"=>6, :L1=>7, :L2=>8},
+            "changes: 1"=>{:"1p"=>0, :"2p"=>0, :"5p"=>0, :"10p"=>0, :"20p"=>0, :"50p"=>0, :L1=>1, :L2=>1},
+            "changes: 2"=>{:"1p"=>0, :"2p"=>0, :"5p"=>0, :"10p"=>0, :"20p"=>0, :"50p"=>0, :L1=>2, :L2=>1},
+            "changes: 3"=>{:"1p"=>0, :"2p"=>0, :"5p"=>0, :"10p"=>0, :"20p"=>0, :"50p"=>0, :L1=>1, :L2=>1}})
+      end
+    end
+
+    it 'products' do
+      @product   = Product.new('coke', 1)
+      @product_2 = Product.new('tea', 0.8)
+      @vm = VendingMachine.new(products: [@product])
+      @vm.reload_products([@product_2])
+      expect(@vm.get_product_history).to eq(
+        {"changes: 0"=>{"coke"=>1.0},
+         "changes: 1"=>{"tea"=>0.8}})
+    end
+
+  end
 end
